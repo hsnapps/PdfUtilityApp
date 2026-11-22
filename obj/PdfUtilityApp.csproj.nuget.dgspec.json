@@ -49,6 +49,10 @@
           "framework": "net10.0-windows7.0",
           "targetAlias": "net10.0-windows",
           "dependencies": {
+            "Docnet.Core": {
+              "target": "Package",
+              "version": "[2.6.0, )"
+            },
             "PDFsharp": {
               "target": "Package",
               "version": "[6.5.0, )"

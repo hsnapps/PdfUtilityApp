@@ -1,9 +1,10 @@
 {
   "version": 2,
-  "dgSpecHash": "VOi731mVF10=",
+  "dgSpecHash": "K301/mvXLno=",
   "success": true,
   "projectFilePath": "D:\\code\\PdfUtilityApp\\PdfUtilityApp.csproj",
   "expectedPackageFiles": [
+    "C:\\Users\\hsn\\.nuget\\packages\\docnet.core\\2.6.0\\docnet.core.2.6.0.nupkg.sha512",
     "C:\\Users\\hsn\\.nuget\\packages\\microsoft.extensions.dependencyinjection.abstractions\\8.0.2\\microsoft.extensions.dependencyinjection.abstractions.8.0.2.nupkg.sha512",
     "C:\\Users\\hsn\\.nuget\\packages\\microsoft.extensions.logging.abstractions\\8.0.3\\microsoft.extensions.logging.abstractions.8.0.3.nupkg.sha512",
     "C:\\Users\\hsn\\.nuget\\packages\\pdfsharp\\6.5.0\\pdfsharp.6.5.0.nupkg.sha512"
