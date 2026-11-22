@@ -49,7 +49,7 @@ namespace PdfUtilityApp
             var tools = new (string Title, int Row, int Col, Action OnClick)[]
             {
                 ("1. Merge PDF Files", 0, 0, () => { using var dlg = new MergePdfForm(); dlg.ShowDialog(this); }),
-                ("2. Split or Reorder Pages", 1, 0, () => OpenTool("Split or Reorder Pages")),
+                ("2. Split or Reorder Pages", 1, 0, OpenSplitOrReorder),
                 ("3. Encrypt and Decrypt Options", 2, 0, () => OpenTool("Encrypt and Decrypt Options")),
                 ("4. Rotate or Crop PDF Pages", 3, 0, () => OpenTool("Rotate or Crop PDF Pages")),
                 ("5. Reformat Multiple Pages", 4, 0, () => OpenTool("Reformat Multiple Pages")),
@@ -97,6 +97,30 @@ namespace PdfUtilityApp
         private void OpenTool(string toolName)
         {
             MessageBox.Show($"{toolName} popup will open here.", "Coming Soon");
+        }
+
+        private void OpenSplitOrReorder()
+        {
+            using var ofd = new OpenFileDialog
+            {
+                Title = "Select a PDF File",
+                Filter = "PDF Files (*.pdf)|*.pdf",
+                Multiselect = false
+            };
+
+            if (ofd.ShowDialog(this) == DialogResult.OK)
+            {
+                try
+                {
+                    using var dlg = new SplitReorderForm(ofd.FileName);
+                    dlg.ShowDialog(this);
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show($"Could not open PDF:\n{ex.Message}", "Error",
+                        MessageBoxButtons.OK, MessageBoxIcon.Error);
+                }
+            }
         }
     }
 }
