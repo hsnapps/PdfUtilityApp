@@ -1,6 +1,7 @@
 using System;
 using System.Drawing;
 using System.Windows.Forms;
+using PdfUtilityApp.Forms;
 
 namespace PdfUtilityApp
 {
@@ -47,7 +48,7 @@ namespace PdfUtilityApp
             // Button definitions mapped by (Row, Column)
             var tools = new (string Title, int Row, int Col, Action OnClick)[]
             {
-                ("1. Merge PDF Files", 0, 0, () => OpenTool("Merge PDF Files")),
+                ("1. Merge PDF Files", 0, 0, () => { using var dlg = new MergePdfForm(); dlg.ShowDialog(this); }),
                 ("2. Split or Reorder Pages", 1, 0, () => OpenTool("Split or Reorder Pages")),
                 ("3. Encrypt and Decrypt Options", 2, 0, () => OpenTool("Encrypt and Decrypt Options")),
                 ("4. Rotate or Crop PDF Pages", 3, 0, () => OpenTool("Rotate or Crop PDF Pages")),

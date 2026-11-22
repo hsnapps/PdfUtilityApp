@@ -6,12 +6,8 @@ D:\code\PdfUtilityApp\bin\Debug\net10.0-windows\PdfUtilityApp.pdb
 D:\code\PdfUtilityApp\bin\Debug\net10.0-windows\Docnet.Core.dll
 D:\code\PdfUtilityApp\bin\Debug\net10.0-windows\Microsoft.Extensions.DependencyInjection.Abstractions.dll
 D:\code\PdfUtilityApp\bin\Debug\net10.0-windows\Microsoft.Extensions.Logging.Abstractions.dll
-D:\code\PdfUtilityApp\bin\Debug\net10.0-windows\PdfSharp.BarCodes.dll
 D:\code\PdfUtilityApp\bin\Debug\net10.0-windows\PdfSharp.Charting.dll
-D:\code\PdfUtilityApp\bin\Debug\net10.0-windows\PdfSharp.Cryptography.dll
-D:\code\PdfUtilityApp\bin\Debug\net10.0-windows\PdfSharp.License.dll
 D:\code\PdfUtilityApp\bin\Debug\net10.0-windows\PdfSharp.Quality.dll
-D:\code\PdfUtilityApp\bin\Debug\net10.0-windows\PdfSharp.Shared.dll
 D:\code\PdfUtilityApp\bin\Debug\net10.0-windows\PdfSharp.Snippets.dll
 D:\code\PdfUtilityApp\bin\Debug\net10.0-windows\PdfSharp.System.dll
 D:\code\PdfUtilityApp\bin\Debug\net10.0-windows\PdfSharp.WPFonts.dll
@@ -41,3 +37,9 @@ D:\code\PdfUtilityApp\obj\Debug\net10.0-windows\refint\PdfUtilityApp.dll
 D:\code\PdfUtilityApp\obj\Debug\net10.0-windows\PdfUtilityApp.pdb
 D:\code\PdfUtilityApp\obj\Debug\net10.0-windows\PdfUtilityApp.genruntimeconfig.cache
 D:\code\PdfUtilityApp\obj\Debug\net10.0-windows\ref\PdfUtilityApp.dll
+D:\code\PdfUtilityApp\bin\Debug\net10.0-windows\Microsoft.Extensions.DependencyInjection.dll
+D:\code\PdfUtilityApp\bin\Debug\net10.0-windows\Microsoft.Extensions.Logging.dll
+D:\code\PdfUtilityApp\bin\Debug\net10.0-windows\Microsoft.Extensions.Options.dll
+D:\code\PdfUtilityApp\bin\Debug\net10.0-windows\Microsoft.Extensions.Primitives.dll
+D:\code\PdfUtilityApp\bin\Debug\net10.0-windows\de\PdfSharp.Charting.resources.dll
+D:\code\PdfUtilityApp\bin\Debug\net10.0-windows\de\PdfSharp.resources.dll
