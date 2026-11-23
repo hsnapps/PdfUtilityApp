@@ -8,6 +8,7 @@ using System.Drawing.Imaging;
 using System.Runtime.InteropServices;
 using Docnet.Core;
 using Docnet.Core.Models;
+using PdfSharp.Pdf.AcroForms;
 
 namespace PdfUtilityApp.Services
 {
@@ -131,6 +132,36 @@ namespace PdfUtilityApp.Services
         public string ImageType { get; set; } = "PNG"; // PNG, JPG, TIF, GIF, BMP, EPS, WMF, EMF
         public int JpgQuality { get; set; } = 100;
         public bool SingleMultiPageTiff { get; set; } = false;
+    }
+
+    public class PdfDocumentMetadataInfo
+    {
+        public string Title { get; set; } = string.Empty;
+        public string Author { get; set; } = string.Empty;
+        public string Subject { get; set; } = string.Empty;
+        public string Keywords { get; set; } = string.Empty;
+        public string CreatedRaw { get; set; } = string.Empty;
+        public string Creator { get; set; } = string.Empty;
+        public string Producer { get; set; } = string.Empty;
+        public string PdfVersion { get; set; } = string.Empty;
+    }
+
+    public class ReformatPagesOptions
+    {
+        public double PageWidthInches { get; set; } = 8.5;
+        public double PageHeightInches { get; set; } = 11.0;
+        public int Rows { get; set; } = 2;
+        public int Columns { get; set; } = 1;
+        public double MarginLeftInches { get; set; } = 0.5;
+        public double MarginRightInches { get; set; } = 0.5;
+        public double MarginBottomInches { get; set; } = 0.5;
+        public double MarginTopInches { get; set; } = 0.5;
+        public double HorizontalSpaceInches { get; set; } = 0.25;
+        public double VerticalSpaceInches { get; set; } = 0.25;
+        public bool ShowNoteLines { get; set; }
+        public bool ShowPageBorder { get; set; }
+        public System.Drawing.Color LineColor { get; set; } = System.Drawing.Color.Blue;
+        public double LineWidthInches { get; set; } = 0.0138889; // 1 pt = 1/72"
     }
 
     public class PdfService
@@ -1022,6 +1053,315 @@ namespace PdfUtilityApp.Services
 
             encParams.Param[0] = new EncoderParameter(Encoder.SaveFlag, (long)EncoderValue.Flush);
             pages[0].SaveAdd(encParams);
+        }
+
+        /// <summary>
+        /// Deletes all AcroForm fields and widget annotations from a PDF.
+        /// </summary>
+        public void DeleteAllFormFields(string inputPath, string outputPath)
+        {
+            using var doc = PdfReader.Open(inputPath, PdfDocumentOpenMode.Modify);
+
+            if (doc.Internals.Catalog.Elements.ContainsKey("/AcroForm"))
+                doc.Internals.Catalog.Elements.Remove("/AcroForm");
+
+            for (int i = 0; i < doc.PageCount; i++)
+            {
+                var page = doc.Pages[i];
+                for (int a = page.Annotations.Count - 1; a >= 0; a--)
+                {
+                    var annot = page.Annotations[a];
+                    string subtype = annot.Elements.GetName("/Subtype");
+                    if (subtype == "/Widget")
+                        page.Annotations.Remove(annot);
+                }
+            }
+
+            doc.Save(outputPath);
+        }
+
+        /// <summary>
+        /// Flattens all form fields by drawing their values onto the page and removing interactive widgets.
+        /// </summary>
+        public void FlattenAllFormFields(string inputPath, string outputPath)
+        {
+            WindowsFontResolver.EnsureRegistered();
+            using var doc = PdfReader.Open(inputPath, PdfDocumentOpenMode.Modify);
+
+            if (doc.AcroForm != null)
+            {
+                var font = new XFont("Arial", 10, XFontStyleEx.Regular);
+                foreach (string name in doc.AcroForm.Fields.Names)
+                {
+                    var field = doc.AcroForm.Fields[name];
+                    if (field == null) continue;
+
+                    string displayVal = GetAcroFieldDisplayValue(field);
+                    if (string.IsNullOrEmpty(displayVal)) continue;
+
+                    var rectObj = field.Elements.GetRectangle("/Rect");
+                    var pageRef = field.Elements.GetReference("/P");
+
+                    PdfPage? targetPage = null;
+                    if (pageRef?.Value is PdfPage p)
+                    {
+                        targetPage = p;
+                    }
+                    else if (doc.PageCount > 0)
+                    {
+                        targetPage = doc.Pages[0];
+                    }
+
+                    if (targetPage != null && rectObj != null)
+                    {
+                        using var gfx = XGraphics.FromPdfPage(targetPage, XGraphicsPdfPageOptions.Append);
+                        double pageH = targetPage.Height.Point;
+                        double x = rectObj.X1 + 2;
+                        double yTop = pageH - rectObj.Y2;
+                        double w = Math.Max(10, rectObj.Width - 4);
+                        double h = Math.Max(10, rectObj.Height);
+
+                        gfx.DrawString(displayVal, font, XBrushes.Black,
+                            new XRect(x, yTop, w, h), XStringFormats.CenterLeft);
+                    }
+                }
+            }
+
+            // Strip interactive AcroForm & Widget annotations after rendering
+            if (doc.Internals.Catalog.Elements.ContainsKey("/AcroForm"))
+                doc.Internals.Catalog.Elements.Remove("/AcroForm");
+
+            for (int i = 0; i < doc.PageCount; i++)
+            {
+                var page = doc.Pages[i];
+                for (int a = page.Annotations.Count - 1; a >= 0; a--)
+                {
+                    if (page.Annotations[a].Elements.GetName("/Subtype") == "/Widget")
+                        page.Annotations.Remove(page.Annotations[a]);
+                }
+            }
+
+            doc.Save(outputPath);
+        }
+
+        /// <summary>
+        /// Lists all AcroForm field names and their current values.
+        /// </summary>
+        public List<(string Name, string Value)> ListAllFormFields(string inputPath)
+        {
+            var results = new List<(string Name, string Value)>();
+            using var doc = PdfReader.Open(inputPath, PdfDocumentOpenMode.Import);
+
+            if (doc.AcroForm == null || doc.AcroForm.Fields.Count == 0)
+                return results;
+
+            foreach (string name in doc.AcroForm.Fields.Names)
+            {
+                var field = doc.AcroForm.Fields[name];
+                if (field != null)
+                {
+                    results.Add((name, GetAcroFieldDisplayValue(field)));
+                }
+            }
+
+            return results;
+        }
+
+        /// <summary>
+        /// Updates the value of a single named AcroForm field and saves to outputPath.
+        /// </summary>
+        public void EditSingleFormField(string inputPath, string outputPath, string fieldName, string newValue)
+        {
+            if (string.IsNullOrWhiteSpace(fieldName))
+                throw new ArgumentException("Please enter the Form Field Name.");
+
+            using var doc = PdfReader.Open(inputPath, PdfDocumentOpenMode.Modify);
+            if (doc.AcroForm == null)
+                throw new InvalidOperationException("This PDF does not contain any form fields.");
+
+            var field = doc.AcroForm.Fields[fieldName.Trim()]
+                ?? throw new KeyNotFoundException($"Form field '{fieldName}' was not found in this PDF.");
+
+            if (field.ReadOnly)
+                field.ReadOnly = false;
+
+            if (field is PdfCheckBoxField chk)
+            {
+                chk.Checked = newValue.Equals("true", StringComparison.OrdinalIgnoreCase) ||
+                              newValue.Equals("yes", StringComparison.OrdinalIgnoreCase) ||
+                              newValue == "1";
+            }
+            else if (field is PdfTextField txt)
+            {
+                txt.Text = newValue;
+            }
+            else
+            {
+                field.Value = new PdfString(newValue);
+            }
+
+            // Force viewer appearance regeneration
+            if (doc.AcroForm.Elements.ContainsKey("/NeedAppearances"))
+                doc.AcroForm.Elements["/NeedAppearances"] = new PdfBoolean(true);
+            else
+                doc.AcroForm.Elements.Add("/NeedAppearances", new PdfBoolean(true));
+
+            doc.Save(outputPath);
+        }
+
+        private static string GetAcroFieldDisplayValue(PdfAcroField field)
+        {
+            if (field is PdfCheckBoxField chk)
+                return chk.Checked ? "Checked" : "Unchecked";
+            if (field is PdfTextField txt)
+                return txt.Text ?? string.Empty;
+            return field.Value?.ToString() ?? string.Empty;
+        }
+
+        /// <summary>
+        /// Reads standard document metadata properties from a PDF.
+        /// </summary>
+        public PdfDocumentMetadataInfo GetPdfMetadata(string inputPath)
+        {
+            using var doc = PdfReader.Open(inputPath, PdfDocumentOpenMode.Import);
+            var info = doc.Info;
+
+            string rawCreationDate = info.Elements.GetString("/CreationDate");
+            if (string.IsNullOrEmpty(rawCreationDate) && info.CreationDate != DateTime.MinValue)
+            {
+                rawCreationDate = $"D:{info.CreationDate.ToUniversalTime():yyyyMMddHHmmss}Z";
+            }
+
+            int ver = doc.Version; // e.g., 14 -> "1.4", 17 -> "1.7"
+            string verFormatted = ver >= 10 ? $"{ver / 10}.{ver % 10}" : "1.4";
+
+            return new PdfDocumentMetadataInfo
+            {
+                Title = info.Title ?? string.Empty,
+                Author = info.Author ?? string.Empty,
+                Subject = info.Subject ?? string.Empty,
+                Keywords = info.Keywords ?? string.Empty,
+                CreatedRaw = rawCreationDate,
+                Creator = info.Creator ?? string.Empty,
+                Producer = info.Producer ?? string.Empty,
+                PdfVersion = verFormatted
+            };
+        }
+
+        /// <summary>
+        /// Updates standard document metadata properties and saves to outputPath.
+        /// </summary>
+        public void UpdatePdfMetadata(string inputPath, string outputPath, PdfDocumentMetadataInfo meta)
+        {
+            using var doc = PdfReader.Open(inputPath, PdfDocumentOpenMode.Modify);
+            var info = doc.Info;
+
+            info.Title = meta.Title;
+            info.Author = meta.Author;
+            info.Subject = meta.Subject;
+            info.Keywords = meta.Keywords;
+            info.Creator = meta.Creator;
+
+            if (!string.IsNullOrWhiteSpace(meta.CreatedRaw))
+            {
+                info.Elements.SetString("/CreationDate", meta.CreatedRaw.Trim());
+            }
+
+            doc.Save(outputPath);
+        }
+
+        /// <summary>
+        /// Arranges multiple source PDF pages into an N-up grid (Rows x Columns) on newly sized pages,
+        /// with optional borders and note lines.
+        /// </summary>
+        public void ReformatMultiplePages(string inputPath, string outputPath, ReformatPagesOptions opts)
+        {
+            if (opts.Rows < 1 || opts.Columns < 1)
+                throw new ArgumentException("Rows and Columns must be at least 1.");
+
+            double pageW = opts.PageWidthInches * 72.0;
+            double pageH = opts.PageHeightInches * 72.0;
+            double mLeft = opts.MarginLeftInches * 72.0;
+            double mRight = opts.MarginRightInches * 72.0;
+            double mTop = opts.MarginTopInches * 72.0;
+            double mBottom = opts.MarginBottomInches * 72.0;
+            double gapX = opts.HorizontalSpaceInches * 72.0;
+            double gapY = opts.VerticalSpaceInches * 72.0;
+
+            double usableW = pageW - mLeft - mRight - gapX * (opts.Columns - 1);
+            double usableH = pageH - mTop - mBottom - gapY * (opts.Rows - 1);
+
+            if (usableW <= 0 || usableH <= 0)
+                throw new ArgumentException("Margins and spacing exceed the selected page dimensions.");
+
+            double cellW = usableW / opts.Columns;
+            double cellH = usableH / opts.Rows;
+
+            using var sourceForm = XPdfForm.FromFile(inputPath);
+            int totalSourcePages = sourceForm.PageCount;
+            int pagesPerSheet = opts.Rows * opts.Columns;
+
+            using var outDoc = new PdfDocument();
+            var xColor = XColor.FromArgb(opts.LineColor.A, opts.LineColor.R, opts.LineColor.G, opts.LineColor.B);
+            double strokePts = Math.Max(0.25, opts.LineWidthInches * 72.0);
+            var pen = new XPen(xColor, strokePts);
+
+            for (int startIdx = 0; startIdx < totalSourcePages; startIdx += pagesPerSheet)
+            {
+                var outPage = outDoc.AddPage();
+                outPage.Width = XUnit.FromPoint(pageW);
+                outPage.Height = XUnit.FromPoint(pageH);
+
+                using var gfx = XGraphics.FromPdfPage(outPage);
+
+                for (int slot = 0; slot < pagesPerSheet && (startIdx + slot) < totalSourcePages; slot++)
+                {
+                    int row = slot / opts.Columns;
+                    int col = slot % opts.Columns;
+
+                    double cellX = mLeft + col * (cellW + gapX);
+                    double cellY = mTop + row * (cellH + gapY);
+
+                    // If Note Lines are enabled, allocate left 55% of cell to page and right 45% to ruled lines
+                    double contentBoxW = opts.ShowNoteLines ? cellW * 0.55 : cellW;
+                    double contentBoxH = cellH;
+
+                    sourceForm.PageNumber = startIdx + slot + 1; // 1-based in XPdfForm
+                    double srcW = sourceForm.PointWidth;
+                    double srcH = sourceForm.PointHeight;
+
+                    // Fit proportionally inside content box
+                    double scale = Math.Min(contentBoxW / srcW, contentBoxH / srcH);
+                    double drawW = srcW * scale;
+                    double drawH = srcH * scale;
+                    double drawX = cellX + (contentBoxW - drawW) / 2.0;
+                    double drawY = cellY + (contentBoxH - drawH) / 2.0;
+
+                    var targetRect = new XRect(drawX, drawY, drawW, drawH);
+                    gfx.DrawImage(sourceForm, targetRect);
+
+                    if (opts.ShowPageBorder)
+                    {
+                        gfx.DrawRectangle(pen, targetRect);
+                    }
+
+                    if (opts.ShowNoteLines)
+                    {
+                        double notesX = cellX + contentBoxW + 10.0;
+                        double notesEndX = cellX + cellW;
+                        if (notesEndX > notesX + 10.0)
+                        {
+                            double lineSpacing = 18.0; // ~0.25 inch between ruled lines
+                            for (double ly = cellY + lineSpacing; ly <= cellY + cellH - 4.0; ly += lineSpacing)
+                            {
+                                gfx.DrawLine(pen, notesX, ly, notesEndX, ly);
+                            }
+                        }
+                    }
+                }
+            }
+
+            outDoc.Save(outputPath);
         }
 
         // 

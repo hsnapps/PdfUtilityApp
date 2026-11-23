@@ -55,7 +55,7 @@ namespace PdfUtilityApp
                 ("2. Split or Reorder Pages", 1, 0, OpenSplitOrReorder),
                 ("3. Encrypt and Decrypt Options", 2, 0, OpenEncryptDecrypt),
                 ("4. Rotate or Crop PDF Pages", 3, 0, OpenRotateOrCrop),
-                ("5. Reformat Multiple Pages", 4, 0, () => OpenTool("Reformat Multiple Pages")),
+                ("5. Reformat Multiple Pages", 4, 0, OpenReformatPages),
 
                 ("6. Add Header and Footer", 0, 1, OpenHeaderFooter),
                 ("7. Add Watermark by Text", 1, 1, OpenTextWatermark),
@@ -63,8 +63,8 @@ namespace PdfUtilityApp
                 ("9. Convert Images to PDF", 3, 1, () => { using var dlg = new ImagesToPdfForm(); dlg.ShowDialog(this); }),
                 ("10. Convert PDF to Images", 4, 1, OpenPdfToImages),
 
-                ("11. PDF Form Field Operations", 0, 2, () => OpenTool("PDF Form Field Operations")),
-                ("12. Add PDF Information", 1, 2, () => OpenTool("Add PDF Information"))
+                ("11. PDF Form Field Operations", 0, 2, OpenFormFieldOperations),
+                ("12. Add PDF Information", 1, 2, OpenAddPdfInfo)
             };
 
             foreach (var tool in tools)
@@ -315,6 +315,78 @@ namespace PdfUtilityApp
                 try
                 {
                     using var dlg = new PdfToImagesForm(ofd.FileName);
+                    dlg.ShowDialog(this);
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show($"Could not open PDF:\n{ex.Message}", "Error",
+                        MessageBoxButtons.OK, MessageBoxIcon.Error);
+                }
+            }
+        }
+
+        private void OpenFormFieldOperations()
+        {
+            using var ofd = new OpenFileDialog
+            {
+                Title = "Select a PDF File",
+                Filter = "PDF Files (*.pdf)|*.pdf",
+                Multiselect = false
+            };
+
+            if (ofd.ShowDialog(this) == DialogResult.OK)
+            {
+                try
+                {
+                    using var dlg = new FormFieldOperationsForm(ofd.FileName);
+                    dlg.ShowDialog(this);
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show($"Could not open PDF:\n{ex.Message}", "Error",
+                        MessageBoxButtons.OK, MessageBoxIcon.Error);
+                }
+            }
+        }
+
+        private void OpenAddPdfInfo()
+        {
+            using var ofd = new OpenFileDialog
+            {
+                Title = "Select a PDF File",
+                Filter = "PDF Files (*.pdf)|*.pdf",
+                Multiselect = false
+            };
+
+            if (ofd.ShowDialog(this) == DialogResult.OK)
+            {
+                try
+                {
+                    using var dlg = new AddPdfInfoForm(ofd.FileName);
+                    dlg.ShowDialog(this);
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show($"Could not open PDF:\n{ex.Message}", "Error",
+                        MessageBoxButtons.OK, MessageBoxIcon.Error);
+                }
+            }
+        }
+
+        private void OpenReformatPages()
+        {
+            using var ofd = new OpenFileDialog
+            {
+                Title = "Select a PDF File",
+                Filter = "PDF Files (*.pdf)|*.pdf",
+                Multiselect = false
+            };
+
+            if (ofd.ShowDialog(this) == DialogResult.OK)
+            {
+                try
+                {
+                    using var dlg = new ReformatPagesForm(ofd.FileName);
                     dlg.ShowDialog(this);
                 }
                 catch (Exception ex)
