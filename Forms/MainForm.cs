@@ -58,8 +58,8 @@ namespace PdfUtilityApp
                 ("5. Reformat Multiple Pages", 4, 0, () => OpenTool("Reformat Multiple Pages")),
 
                 ("6. Add Header and Footer", 0, 1, OpenHeaderFooter),
-                ("7. Add Watermark by Text", 1, 1, () => OpenTool("Add Watermark by Text")),
-                ("8. Add Watermark by Image", 2, 1, () => OpenTool("Add Watermark by Image")),
+                ("7. Add Watermark by Text", 1, 1, OpenTextWatermark),
+                ("8. Add Watermark by Image", 2, 1, OpenImageWatermark),
                 ("9. Convert Images to PDF", 3, 1, () => OpenTool("Convert Images to PDF")),
                 ("10. Convert PDF to Images", 4, 1, () => OpenTool("Convert PDF to Images")),
 
@@ -245,6 +245,62 @@ namespace PdfUtilityApp
             }
         }
 
+        private void OpenTextWatermark()
+        {
+            using var ofd = new OpenFileDialog
+            {
+                Title = "Select a PDF File",
+                Filter = "PDF Files (*.pdf)|*.pdf",
+                Multiselect = false
+            };
 
+            if (ofd.ShowDialog(this) == DialogResult.OK)
+            {
+                try
+                {
+                    using var dlg = new TextWatermarkForm(ofd.FileName);
+                    dlg.ShowDialog(this);
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show($"Could not open PDF:\n{ex.Message}", "Error",
+                        MessageBoxButtons.OK, MessageBoxIcon.Error);
+                }
+            }
+        }
+
+        private void OpenImageWatermark()
+        {
+            using var pdfDialog = new OpenFileDialog
+            {
+                Title = "Select a PDF File",
+                Filter = "PDF Files (*.pdf)|*.pdf",
+                Multiselect = false
+            };
+
+            if (pdfDialog.ShowDialog(this) != DialogResult.OK) return;
+
+            using var imgDialog = new OpenFileDialog
+            {
+                Title = "Select Watermark Image",
+                Filter = "Image Files (*.png;*.jpg;*.jpeg;*.bmp;*.gif;*.tif;*.tiff)|*.png;*.jpg;*.jpeg;*.bmp;*.gif;*.tif;*.tiff",
+                Multiselect = false
+            };
+
+            if (imgDialog.ShowDialog(this) != DialogResult.OK) return;
+
+            try
+            {
+                using var dlg = new ImageWatermarkForm(pdfDialog.FileName, imgDialog.FileName);
+                dlg.ShowDialog(this);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Could not open files:\n{ex.Message}", "Error",
+                    MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+
+        // 
     }
 }
