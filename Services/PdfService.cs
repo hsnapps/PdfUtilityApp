@@ -1,7 +1,4 @@
-// using System;
-// using System.Collections.Generic;
-// using System.IO;
-// using System.Linq;
+using PdfSharp.Drawing;
 using PdfSharp.Pdf;
 using PdfSharp.Pdf.IO;
 using PdfSharp.Pdf.Security;
@@ -21,6 +18,20 @@ namespace PdfUtilityApp.Services
         public bool PermitAccessibilityExtractContent { get; set; } = true;
         public bool PermitAssembleDocument { get; set; } = true;
         public bool PermitFullQualityPrint { get; set; } = true;
+    }
+
+    public class PageTransformInfo
+    {
+        public int PageNumber { get; set; }
+        public double WidthInches { get; set; }
+        public double HeightInches { get; set; }
+        public string Orientation => WidthInches > HeightInches ? "L" : "P";
+        public int CurrentRotation { get; set; }
+        public int RotateBy { get; set; }
+        public double LeftMarginInches { get; set; }
+        public double RightMarginInches { get; set; }
+        public double BottomMarginInches { get; set; }
+        public double TopMarginInches { get; set; }
     }
 
     public class PdfService
@@ -274,5 +285,82 @@ namespace PdfUtilityApp.Services
             // A fresh PdfDocument with no passwords set saves completely unencrypted
             outDoc.Save(outputPath);
         }
+
+        /// <summary>
+        /// Reads page dimensions (in inches), orientation, and rotation for every page in the PDF.
+        /// </summary>
+        public List<PageTransformInfo> GetPagesTransformInfo(string inputPath)
+        {
+            var list = new List<PageTransformInfo>();
+            using var doc = PdfReader.Open(inputPath, PdfDocumentOpenMode.Import);
+
+            for (int i = 0; i < doc.PageCount; i++)
+            {
+                var page = doc.Pages[i];
+                // PDFsharp page Width/Height are in points (72 points = 1 inch)
+                double widthInches = Math.Round(page.Width.Point / 72.0, 5);
+                double heightInches = Math.Round(page.Height.Point / 72.0, 5);
+
+                list.Add(new PageTransformInfo
+                {
+                    PageNumber = i + 1,
+                    WidthInches = widthInches,
+                    HeightInches = heightInches,
+                    CurrentRotation = page.Rotate
+                });
+            }
+
+            return list;
+        }
+
+        /// <summary>
+        /// Applies per-page rotation and crop box margins (in inches) and saves to outputPath.
+        /// </summary>
+        public void RotateAndCropPdf(string inputPath, string outputPath, IList<PageTransformInfo> pageTransforms)
+        {
+            using var sourceDoc = PdfReader.Open(inputPath, PdfDocumentOpenMode.Import);
+            using var outDoc = new PdfDocument();
+
+            for (int i = 0; i < sourceDoc.PageCount; i++)
+            {
+                var page = outDoc.AddPage(sourceDoc.Pages[i]);
+                var transform = pageTransforms[i];
+
+                // Apply rotation (normalized to 0, 90, 180, 270)
+                if (transform.RotateBy != 0)
+                {
+                    int newRotation = (page.Rotate + transform.RotateBy) % 360;
+                    if (newRotation < 0) newRotation += 360;
+                    page.Rotate = newRotation;
+                }
+
+                // Apply CropBox if any margin > 0
+                if (transform.LeftMarginInches != 0 ||
+                    transform.RightMarginInches != 0 ||
+                    transform.BottomMarginInches != 0 ||
+                    transform.TopMarginInches != 0)
+                {
+                    double leftPts = transform.LeftMarginInches * 72.0;
+                    double rightPts = transform.RightMarginInches * 72.0;
+                    double bottomPts = transform.BottomMarginInches * 72.0;
+                    double topPts = transform.TopMarginInches * 72.0;
+
+                    var mediaBox = page.MediaBox;
+                    double x1 = mediaBox.X1 + leftPts;
+                    double y1 = mediaBox.Y1 + bottomPts;
+                    double x2 = mediaBox.X2 - rightPts;
+                    double y2 = mediaBox.Y2 - topPts;
+
+                    if (x2 <= x1 || y2 <= y1)
+                        throw new ArgumentException($"Crop margins on page {transform.PageNumber} exceed page dimensions.");
+
+                    page.CropBox = new PdfRectangle(new XPoint(x1, y1), new XPoint(x2, y2));
+                }
+            }
+
+            outDoc.Save(outputPath);
+        }
+
+
     }
 }

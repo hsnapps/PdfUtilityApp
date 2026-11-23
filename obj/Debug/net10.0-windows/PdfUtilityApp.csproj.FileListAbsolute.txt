@@ -43,3 +43,4 @@ D:\code\PdfUtilityApp\bin\Debug\net10.0-windows\Microsoft.Extensions.Options.dll
 D:\code\PdfUtilityApp\bin\Debug\net10.0-windows\Microsoft.Extensions.Primitives.dll
 D:\code\PdfUtilityApp\bin\Debug\net10.0-windows\de\PdfSharp.Charting.resources.dll
 D:\code\PdfUtilityApp\bin\Debug\net10.0-windows\de\PdfSharp.resources.dll
+D:\code\PdfUtilityApp\obj\Debug\net10.0-windows\PdfUtilityApp.sourcelink.json
