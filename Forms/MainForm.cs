@@ -57,7 +57,7 @@ namespace PdfUtilityApp
                 ("4. Rotate or Crop PDF Pages", 3, 0, OpenRotateOrCrop),
                 ("5. Reformat Multiple Pages", 4, 0, () => OpenTool("Reformat Multiple Pages")),
 
-                ("6. Add Header and Footer", 0, 1, () => OpenTool("Add Header and Footer")),
+                ("6. Add Header and Footer", 0, 1, OpenHeaderFooter),
                 ("7. Add Watermark by Text", 1, 1, () => OpenTool("Add Watermark by Text")),
                 ("8. Add Watermark by Image", 2, 1, () => OpenTool("Add Watermark by Image")),
                 ("9. Convert Images to PDF", 3, 1, () => OpenTool("Convert Images to PDF")),
@@ -220,5 +220,31 @@ namespace PdfUtilityApp
                 }
             }
         }
+
+        private void OpenHeaderFooter()
+        {
+            using var ofd = new OpenFileDialog
+            {
+                Title = "Select a PDF File",
+                Filter = "PDF Files (*.pdf)|*.pdf",
+                Multiselect = false
+            };
+
+            if (ofd.ShowDialog(this) == DialogResult.OK)
+            {
+                try
+                {
+                    using var dlg = new HeaderFooterForm(ofd.FileName);
+                    dlg.ShowDialog(this);
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show($"Could not open PDF:\n{ex.Message}", "Error",
+                        MessageBoxButtons.OK, MessageBoxIcon.Error);
+                }
+            }
+        }
+
+
     }
 }

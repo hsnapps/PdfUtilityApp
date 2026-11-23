@@ -34,6 +34,32 @@ namespace PdfUtilityApp.Services
         public double TopMarginInches { get; set; }
     }
 
+    public class HeaderFooterBandOptions
+    {
+        public bool Enabled { get; set; } = true;
+        public bool AddOnFirstPage { get; set; } = true;
+        public bool ShowPageNumber { get; set; } = true;
+        public string TextBefore { get; set; } = string.Empty;
+        public string TextAfter { get; set; } = string.Empty;
+        public string Alignment { get; set; } = "Left"; // Left, Center, Right
+        public int PageOffset { get; set; } = 0;
+    }
+
+    public class HeaderFooterOptions
+    {
+        public HeaderFooterBandOptions Header { get; set; } = new();
+        public HeaderFooterBandOptions Footer { get; set; } = new();
+        public string FontEncode { get; set; } = "Western";
+        public string FontName { get; set; } = "Times New Roman";
+        public string FontStyle { get; set; } = "Regular"; // Regular, Bold, Italic, Bold Italic
+        public double FontSize { get; set; } = 12.0;
+        public System.Drawing.Color FontColor { get; set; } = System.Drawing.Color.Blue;
+        public double MarginLeftInches { get; set; } = 0.5;
+        public double MarginRightInches { get; set; } = 0.5;
+        public double MarginTopInches { get; set; } = 0.5;
+        public double MarginBottomInches { get; set; } = 0.5;
+    }
+
     public class PdfService
     {
         /// <summary>
@@ -361,6 +387,94 @@ namespace PdfUtilityApp.Services
             outDoc.Save(outputPath);
         }
 
+        /// <summary>
+        /// Draws customizable headers and footers with optional page numbers, alignment, and margins onto a PDF.
+        /// </summary>
+        public void AddHeaderAndFooter(string inputPath, string outputPath, HeaderFooterOptions opts)
+        {
+            WindowsFontResolver.EnsureRegistered();
 
+            using var sourceDoc = PdfReader.Open(inputPath, PdfDocumentOpenMode.Import);
+            using var outDoc = new PdfDocument();
+
+            XFontStyleEx style = opts.FontStyle switch
+            {
+                "Bold" => XFontStyleEx.Bold,
+                "Italic" => XFontStyleEx.Italic,
+                "Bold Italic" => XFontStyleEx.BoldItalic,
+                _ => XFontStyleEx.Regular
+            };
+
+            var font = new XFont(opts.FontName, opts.FontSize, style);
+            var xColor = XColor.FromArgb(opts.FontColor.A, opts.FontColor.R, opts.FontColor.G, opts.FontColor.B);
+            var brush = new XSolidBrush(xColor);
+
+            double mLeft = opts.MarginLeftInches * 72.0;
+            double mRight = opts.MarginRightInches * 72.0;
+            double mTop = opts.MarginTopInches * 72.0;
+            double mBottom = opts.MarginBottomInches * 72.0;
+
+            for (int i = 0; i < sourceDoc.PageCount; i++)
+            {
+                var page = outDoc.AddPage(sourceDoc.Pages[i]);
+                int pageNum = i + 1;
+                bool isFirstPage = pageNum == 1;
+
+                using var gfx = XGraphics.FromPdfPage(page, XGraphicsPdfPageOptions.Append);
+                double pageW = page.Width.Point;
+                double pageH = page.Height.Point;
+                double boxWidth = Math.Max(10, pageW - mLeft - mRight);
+
+                if (opts.Header.Enabled && (opts.Header.AddOnFirstPage || !isFirstPage))
+                {
+                    string headerText = BuildBandText(opts.Header, pageNum);
+                    var rect = new XRect(mLeft, mTop, boxWidth, opts.FontSize * 1.5);
+                    gfx.DrawString(headerText, font, brush, rect, GetXStringFormat(opts.Header.Alignment, isHeader: true));
+                }
+
+                if (opts.Footer.Enabled && (opts.Footer.AddOnFirstPage || !isFirstPage))
+                {
+                    string footerText = BuildBandText(opts.Footer, pageNum);
+                    double boxHeight = opts.FontSize * 1.5;
+                    double yTop = Math.Max(0, pageH - mBottom - boxHeight);
+                    var rect = new XRect(mLeft, yTop, boxWidth, boxHeight);
+                    gfx.DrawString(footerText, font, brush, rect, GetXStringFormat(opts.Footer.Alignment, isHeader: false));
+                }
+            }
+
+            outDoc.Save(outputPath);
+        }
+
+        private static string BuildBandText(HeaderFooterBandOptions band, int physicalPageNumber)
+        {
+            if (!band.ShowPageNumber)
+                return $"{band.TextBefore} {band.TextAfter}".Trim();
+
+            int displayNumber = physicalPageNumber + band.PageOffset;
+            string left = band.TextBefore;
+            string right = band.TextAfter;
+
+            string separatorBefore = !string.IsNullOrEmpty(left) && !left.EndsWith(" ") ? " " : "";
+            string separatorAfter = !string.IsNullOrEmpty(right) && !right.StartsWith(" ") ? " " : "";
+
+            return $"{left}{separatorBefore}{displayNumber}{separatorAfter}{right}".Trim();
+        }
+
+        private static XStringFormat GetXStringFormat(string alignment, bool isHeader)
+        {
+            var fmt = new XStringFormat
+            {
+                LineAlignment = isHeader ? XLineAlignment.Near : XLineAlignment.Far
+            };
+
+            fmt.Alignment = alignment switch
+            {
+                "Center" => XStringAlignment.Center,
+                "Right" => XStringAlignment.Far,
+                _ => XStringAlignment.Near
+            };
+
+            return fmt;
+        }
     }
 }
