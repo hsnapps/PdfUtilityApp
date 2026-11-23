@@ -490,23 +490,19 @@
     ]
   },
   "packageFolders": {
-    "C:\\Users\\hsn\\.nuget\\packages\\": {},
-    "C:\\Program Files\\dotnet\\sdk\\NuGetFallbackFolder": {}
+    "C:\\Users\\hasan\\.nuget\\packages\\": {}
   },
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "D:\\code\\PdfUtilityApp\\PdfUtilityApp.csproj",
+      "projectUniqueName": "C:\\code\\PdfUtilityApp\\PdfUtilityApp.csproj",
       "projectName": "PdfUtilityApp",
-      "projectPath": "D:\\code\\PdfUtilityApp\\PdfUtilityApp.csproj",
-      "packagesPath": "C:\\Users\\hsn\\.nuget\\packages\\",
-      "outputPath": "D:\\code\\PdfUtilityApp\\obj\\",
+      "projectPath": "C:\\code\\PdfUtilityApp\\PdfUtilityApp.csproj",
+      "packagesPath": "C:\\Users\\hasan\\.nuget\\packages\\",
+      "outputPath": "C:\\code\\PdfUtilityApp\\obj\\",
       "projectStyle": "PackageReference",
-      "fallbackFolders": [
-        "C:\\Program Files\\dotnet\\sdk\\NuGetFallbackFolder"
-      ],
       "configFilePaths": [
-        "C:\\Users\\hsn\\AppData\\Roaming\\NuGet\\NuGet.Config"
+        "C:\\Users\\hasan\\AppData\\Roaming\\NuGet\\NuGet.Config"
       ],
       "originalTargetFrameworks": [
         "net10.0-windows"
