@@ -60,8 +60,8 @@ namespace PdfUtilityApp
                 ("6. Add Header and Footer", 0, 1, OpenHeaderFooter),
                 ("7. Add Watermark by Text", 1, 1, OpenTextWatermark),
                 ("8. Add Watermark by Image", 2, 1, OpenImageWatermark),
-                ("9. Convert Images to PDF", 3, 1, () => OpenTool("Convert Images to PDF")),
-                ("10. Convert PDF to Images", 4, 1, () => OpenTool("Convert PDF to Images")),
+                ("9. Convert Images to PDF", 3, 1, () => { using var dlg = new ImagesToPdfForm(); dlg.ShowDialog(this); }),
+                ("10. Convert PDF to Images", 4, 1, OpenPdfToImages),
 
                 ("11. PDF Form Field Operations", 0, 2, () => OpenTool("PDF Form Field Operations")),
                 ("12. Add PDF Information", 1, 2, () => OpenTool("Add PDF Information"))
@@ -298,6 +298,30 @@ namespace PdfUtilityApp
             {
                 MessageBox.Show($"Could not open files:\n{ex.Message}", "Error",
                     MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+
+        private void OpenPdfToImages()
+        {
+            using var ofd = new OpenFileDialog
+            {
+                Title = "Select a PDF File",
+                Filter = "PDF Files (*.pdf)|*.pdf",
+                Multiselect = false
+            };
+
+            if (ofd.ShowDialog(this) == DialogResult.OK)
+            {
+                try
+                {
+                    using var dlg = new PdfToImagesForm(ofd.FileName);
+                    dlg.ShowDialog(this);
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show($"Could not open PDF:\n{ex.Message}", "Error",
+                        MessageBoxButtons.OK, MessageBoxIcon.Error);
+                }
             }
         }
 

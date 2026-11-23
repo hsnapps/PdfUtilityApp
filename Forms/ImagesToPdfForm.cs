@@ -1,10 +1,4 @@
-using System;
-using System.Collections.Generic;
-using System.Drawing;
 using System.Globalization;
-using System.IO;
-using System.Linq;
-using System.Windows.Forms;
 using PdfUtilityApp.Services;
 
 namespace PdfUtilityApp.Forms
@@ -91,7 +85,7 @@ namespace PdfUtilityApp.Forms
             this.Controls.Add(new Label
             {
                 Text = "You can drag and drop image files into this dialog.",
-                Location = new Point(195, 12),
+                Location = new Point(225, 12),
                 AutoSize = true
             });
 
@@ -108,8 +102,8 @@ namespace PdfUtilityApp.Forms
             _btnAddFolder = new Button
             {
                 Text = "Add all Images under a Folder",
-                Location = new Point(265, 34),
-                Size = new Size(150, 23)
+                Location = new Point(240, 34),
+                Size = new Size(177, 23)
             };
             _btnAddFolder.Click += BtnAddFolder_Click;
             this.Controls.Add(_btnAddFolder);
@@ -141,15 +135,15 @@ namespace PdfUtilityApp.Forms
             };
             this.Controls.Add(_chkShowTitle);
 
-            _btnMoveUp = new Button { Text = "Move Up", Location = new Point(424, 96), Size = new Size(56, 23) };
+            _btnMoveUp = new Button { Text = "Move Up", Location = new Point(424, 96), Size = new Size(78, 23) };
             _btnMoveUp.Click += BtnMoveUp_Click;
             this.Controls.Add(_btnMoveUp);
 
-            _btnMoveDown = new Button { Text = "Move Down", Location = new Point(424, 126), Size = new Size(56, 23) };
+            _btnMoveDown = new Button { Text = "Move Down", Location = new Point(424, 126), Size = new Size(78, 23) };
             _btnMoveDown.Click += BtnMoveDown_Click;
             this.Controls.Add(_btnMoveDown);
 
-            _btnRemove = new Button { Text = "Remove", Location = new Point(424, 156), Size = new Size(56, 23) };
+            _btnRemove = new Button { Text = "Remove", Location = new Point(424, 156), Size = new Size(78, 23) };
             _btnRemove.Click += BtnRemove_Click;
             this.Controls.Add(_btnRemove);
 
@@ -258,7 +252,7 @@ namespace PdfUtilityApp.Forms
 
             _cmbCompressDpi = new ComboBox
             {
-                Location = new Point(272, 480),
+                Location = new Point(295, 480),
                 Size = new Size(82, 23),
                 DropDownStyle = ComboBoxStyle.DropDownList
             };
@@ -285,7 +279,7 @@ namespace PdfUtilityApp.Forms
             _btnClose.Click += (s, e) => this.Close();
             this.Controls.Add(_btnClose);
 
-            this.ClientSize = new Size(490, 546);
+            this.ClientSize = new Size(520, 548);
         }
 
         private void AddImagesToList(IEnumerable<string> paths)
