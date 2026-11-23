@@ -1,20 +1,38 @@
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
+// using System;
+// using System.Collections.Generic;
+// using System.IO;
+// using System.Linq;
 using PdfSharp.Pdf;
 using PdfSharp.Pdf.IO;
+using PdfSharp.Pdf.Security;
 
 namespace PdfUtilityApp.Services
 {
+    public class PdfEncryptionOptions
+    {
+        public string UserPassword { get; set; } = string.Empty;
+        public string OwnerPassword { get; set; } = string.Empty;
+        public bool Use128Bit { get; set; }
+        public bool PermitPrint { get; set; } = true;
+        public bool PermitModifyDocument { get; set; } = true;
+        public bool PermitExtractContent { get; set; } = true;
+        public bool PermitAnnotations { get; set; } = true;
+        public bool PermitFormsFill { get; set; } = true;
+        public bool PermitAccessibilityExtractContent { get; set; } = true;
+        public bool PermitAssembleDocument { get; set; } = true;
+        public bool PermitFullQualityPrint { get; set; } = true;
+    }
+
     public class PdfService
     {
         /// <summary>
-        /// Reads the total page count of a PDF file without loading the full document for modification.
+        /// Gets the page count, supporting optional password for encrypted PDFs.
         /// </summary>
-        public int GetPageCount(string filePath)
+        public int GetPageCount(string filePath, string? password = null)
         {
-            using var doc = PdfReader.Open(filePath, PdfDocumentOpenMode.Import);
+            using var doc = string.IsNullOrEmpty(password)
+                ? PdfReader.Open(filePath, PdfDocumentOpenMode.Import)
+                : PdfReader.Open(filePath, password, PdfDocumentOpenMode.Import);
             return doc.PageCount;
         }
 
@@ -35,7 +53,6 @@ namespace PdfUtilityApp.Services
                     outputDocument.AddPage(inputDocument.Pages[i]);
                 }
 
-                // Add bookmark pointing to the first page of this imported PDF
                 if (addBookmarks && inputDocument.PageCount > 0)
                 {
                     string bookmarkTitle = Path.GetFileNameWithoutExtension(filePath);
@@ -132,7 +149,6 @@ namespace PdfUtilityApp.Services
             var createdFiles = new List<string>();
             using var sourceDoc = PdfReader.Open(inputPath, PdfDocumentOpenMode.Import);
 
-            // Build lookup of source page object -> 1-based page number for bookmark mapping
             var sourcePageMap = new Dictionary<PdfPage, int>();
             for (int i = 0; i < sourceDoc.PageCount; i++)
             {
@@ -198,6 +214,64 @@ namespace PdfUtilityApp.Services
                 }
             }
 
+            outDoc.Save(outputPath);
+        }
+
+        /// <summary>
+        /// Encrypts a PDF with User/Owner passwords and granular permission flags.
+        /// </summary>
+        public void EncryptPdf(string inputPath, string outputPath, PdfEncryptionOptions options, string? existingPassword = null)
+        {
+            if (string.IsNullOrEmpty(options.UserPassword) && string.IsNullOrEmpty(options.OwnerPassword))
+                throw new ArgumentException("Please enter at least a User Password or an Owner Password.");
+
+            using var sourceDoc = string.IsNullOrEmpty(existingPassword)
+                ? PdfReader.Open(inputPath, PdfDocumentOpenMode.Import)
+                : PdfReader.Open(inputPath, existingPassword, PdfDocumentOpenMode.Import);
+
+            using var outDoc = new PdfDocument();
+            for (int i = 0; i < sourceDoc.PageCount; i++)
+            {
+                outDoc.AddPage(sourceDoc.Pages[i]);
+            }
+
+            PdfSecuritySettings security = outDoc.SecuritySettings;
+
+            if (!string.IsNullOrEmpty(options.UserPassword))
+                security.UserPassword = options.UserPassword;
+
+            // OwnerPassword is required when applying permission restrictions
+            security.OwnerPassword = !string.IsNullOrEmpty(options.OwnerPassword)
+                ? options.OwnerPassword
+                : options.UserPassword;
+
+            security.PermitPrint = options.PermitPrint;
+            security.PermitModifyDocument = options.PermitModifyDocument;
+            security.PermitExtractContent = options.PermitExtractContent || options.PermitAccessibilityExtractContent;
+            security.PermitAnnotations = options.PermitAnnotations;
+            security.PermitFormsFill = options.PermitFormsFill;
+            security.PermitAssembleDocument = options.PermitAssembleDocument;
+            security.PermitFullQualityPrint = options.PermitFullQualityPrint;
+
+            outDoc.Save(outputPath);
+        }
+
+        /// <summary>
+        /// Removes password protection and security restrictions, saving an unencrypted PDF.
+        /// </summary>
+        public void DecryptPdf(string inputPath, string outputPath, string? password)
+        {
+            using var sourceDoc = string.IsNullOrEmpty(password)
+                ? PdfReader.Open(inputPath, PdfDocumentOpenMode.Import)
+                : PdfReader.Open(inputPath, password, PdfDocumentOpenMode.Import);
+
+            using var outDoc = new PdfDocument();
+            for (int i = 0; i < sourceDoc.PageCount; i++)
+            {
+                outDoc.AddPage(sourceDoc.Pages[i]);
+            }
+
+            // A fresh PdfDocument with no passwords set saves completely unencrypted
             outDoc.Save(outputPath);
         }
     }

@@ -1,12 +1,15 @@
-using System;
-using System.Drawing;
-using System.Windows.Forms;
+// using System;
+// using System.Drawing;
+// using System.Windows.Forms;
 using PdfUtilityApp.Forms;
+using PdfUtilityApp.Services;
 
 namespace PdfUtilityApp
 {
     public class MainForm : Form
     {
+        private readonly PdfService _pdfService = new();
+
         public MainForm()
         {
             InitializeLayout();
@@ -50,7 +53,7 @@ namespace PdfUtilityApp
             {
                 ("1. Merge PDF Files", 0, 0, () => { using var dlg = new MergePdfForm(); dlg.ShowDialog(this); }),
                 ("2. Split or Reorder Pages", 1, 0, OpenSplitOrReorder),
-                ("3. Encrypt and Decrypt Options", 2, 0, () => OpenTool("Encrypt and Decrypt Options")),
+                ("3. Encrypt and Decrypt Options", 2, 0, OpenEncryptDecrypt),
                 ("4. Rotate or Crop PDF Pages", 3, 0, () => OpenTool("Rotate or Crop PDF Pages")),
                 ("5. Reformat Multiple Pages", 4, 0, () => OpenTool("Reformat Multiple Pages")),
 
@@ -121,6 +124,77 @@ namespace PdfUtilityApp
                         MessageBoxButtons.OK, MessageBoxIcon.Error);
                 }
             }
+        }
+
+        private void OpenEncryptDecrypt()
+        {
+            using var ofd = new OpenFileDialog
+            {
+                Title = "Select a PDF File",
+                Filter = "PDF Files (*.pdf)|*.pdf",
+                Multiselect = false
+            };
+
+            if (ofd.ShowDialog(this) != DialogResult.OK) return;
+
+            string? password = null;
+            int pageCount = 0;
+
+            try
+            {
+                pageCount = _pdfService.GetPageCount(ofd.FileName);
+            }
+            catch (PdfSharp.Pdf.IO.PdfReaderException)
+            {
+                // Prompt for password if the file is password-protected
+                password = PromptForPassword();
+                if (password == null) return;
+
+                try
+                {
+                    pageCount = _pdfService.GetPageCount(ofd.FileName, password);
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show($"Could not open PDF with the provided password:\n{ex.Message}",
+                        "Invalid Password", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    return;
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Could not open PDF:\n{ex.Message}", "Error",
+                    MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return;
+            }
+
+            using var dlg = new EncryptDecryptForm(ofd.FileName, pageCount, password);
+            dlg.ShowDialog(this);
+        }
+
+        private string? PromptForPassword()
+        {
+            using var prompt = new Form
+            {
+                Width = 340,
+                Height = 150,
+                FormBorderStyle = FormBorderStyle.FixedDialog,
+                Text = "Password Required",
+                StartPosition = FormStartPosition.CenterParent,
+                MaximizeBox = false,
+                MinimizeBox = false
+            };
+
+            var lbl = new Label { Left = 15, Top = 15, Text = "This PDF is encrypted. Enter password:", AutoSize = true };
+            var txt = new TextBox { Left = 15, Top = 42, Width = 290, UseSystemPasswordChar = true };
+            var btnOk = new Button { Text = "OK", Left = 145, Width = 75, Top = 75, DialogResult = DialogResult.OK };
+            var btnCancel = new Button { Text = "Cancel", Left = 230, Width = 75, Top = 75, DialogResult = DialogResult.Cancel };
+
+            prompt.Controls.AddRange(new Control[] { lbl, txt, btnOk, btnCancel });
+            prompt.AcceptButton = btnOk;
+            prompt.CancelButton = btnCancel;
+
+            return prompt.ShowDialog(this) == DialogResult.OK ? txt.Text : null;
         }
     }
 }
