@@ -1,16 +1,23 @@
-namespace PdfUtilityApp;
+using System;
+using System.Windows.Forms;
 
-static class Program
+namespace PdfUtilityApp
 {
-    /// <summary>
-    ///  The main entry point for the application.
-    /// </summary>
-    [STAThread]
-    static void Main()
+    internal static class Program
     {
-        // To customize application configuration such as set high DPI settings or default font,
-        // see https://aka.ms/applicationconfiguration.
-        ApplicationConfiguration.Initialize();
-        Application.Run(new MainForm());
+        [STAThread]
+        static void Main()
+        {
+            ApplicationConfiguration.Initialize();
+
+            bool restartForLanguage;
+            do
+            {
+                using var mainForm = new MainForm();
+                Application.Run(mainForm);
+                restartForLanguage = mainForm.IsLanguageSwitch;
+            }
+            while (restartForLanguage);
+        }
     }
 }

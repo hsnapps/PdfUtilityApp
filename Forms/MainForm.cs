@@ -9,6 +9,7 @@ namespace PdfUtilityApp
     public class MainForm : Form
     {
         private readonly PdfService _pdfService = new();
+        public bool IsLanguageSwitch { get; private set; } = false;
 
         public MainForm()
         {
@@ -85,16 +86,40 @@ namespace PdfUtilityApp
 
             this.Controls.Add(grid);
 
-            // Exit Button
+            // Bottom Buttons: Exit + Language Toggle ("عربي" / "English")
+            int btnWidth = 105;
+            int btnHeight = 32;
+            int gap = 16;
+            int startX = (this.ClientSize.Width - (btnWidth * 2 + gap)) / 2;
+
             var btnExit = new Button
             {
                 Text = "Exit",
-                Size = new Size(100, 32),
-                Location = new Point((this.ClientSize.Width - 100) / 2, 390),
+                Size = new Size(btnWidth, btnHeight),
+                Location = new Point(startX, 390),
                 Font = new Font("Segoe UI", 9.5F)
             };
             btnExit.Click += (s, e) => this.Close();
             this.Controls.Add(btnExit);
+
+            var btnLanguage = new Button
+            {
+                Name = "btnLanguageToggle",
+                Text = LocalizationManager.IsArabic ? "English" : "عربي",
+                Size = new Size(btnWidth, btnHeight),
+                Location = new Point(startX + btnWidth + gap, 390),
+                Font = new Font("Segoe UI", 9.5F, FontStyle.Bold)
+            };
+            btnLanguage.Click += (s, e) =>
+            {
+                LocalizationManager.SetLanguage(LocalizationManager.IsArabic ? "en" : "ar");
+                this.IsLanguageSwitch = true;
+                this.Close();
+            };
+            this.Controls.Add(btnLanguage);
+
+            // Apply active language (LTR English or RTL Arabic)
+            LocalizationManager.Apply(this);
         }
 
         private void OpenTool(string toolName)
